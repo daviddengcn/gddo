@@ -133,6 +133,7 @@ func getLaunchpadDoc(client *http.Client, match map[string]string, savedEtag str
 			BrowseURL:   expand("http://bazaar.launchpad.net/+branch/{repo}/view/head:{dir}/", match),
 			Etag:        etag,
 			VCS:         "bzr",
+			StarCount:   -1,
 		},
 	}
 	return b.build(files)

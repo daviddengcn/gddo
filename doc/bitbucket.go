@@ -36,6 +36,15 @@ func getBitbucketDoc(client *http.Client, match map[string]string, savedEtag str
 		}
 		match["vcs"] = repo.Scm
 	}
+	
+	starCount := -1
+	var followers struct {
+		Count int
+	}
+	if err := httpGetJSON(client, expand("https://api.bitbucket.org/1.0/repositories/{owner}/{repo}/followers", match), &followers); err == nil {
+		starCount = followers.Count
+	}
+
 
 	tags := make(map[string]string)
 	for _, nodeType := range []string{"branches", "tags"} {
@@ -97,6 +106,7 @@ func getBitbucketDoc(client *http.Client, match map[string]string, savedEtag str
 			BrowseURL:   expand("https://bitbucket.org/{owner}/{repo}/src/{tag}{dir}", match),
 			Etag:        etag,
 			VCS:         match["vcs"],
+			StarCount:   starCount,
 		},
 	}
 

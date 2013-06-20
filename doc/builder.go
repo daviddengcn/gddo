@@ -455,6 +455,9 @@ type Package struct {
 	Imports      []string
 	TestImports  []string
 	XTestImports []string
+	
+	// The number of stargazers
+	StarCount int
 }
 
 var goEnvs = []struct{ GOOS, GOARCH string }{

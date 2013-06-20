@@ -20,6 +20,8 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	
+	"log"
 )
 
 var githubRawHeader = http.Header{"Accept": {"application/vnd.github-blob.raw"}}
@@ -68,6 +70,15 @@ func getGithubDoc(client *http.Client, match map[string]string, savedEtag string
 	if commit == savedEtag {
 		return nil, ErrNotModified
 	}
+	
+	var stars []map[string]interface{}
+	var starCount = -1
+
+	err = httpGetJSON(client, expand("https://api.github.com/repos/{owner}/{repo}/stargazers", match), &stars)
+	if err == nil {
+		starCount = len(stars)
+	}
+	log.Printf("[github-star]: %v, %v", err, stars)
 
 	var tree struct {
 		Tree []struct {
@@ -132,6 +143,7 @@ func getGithubDoc(client *http.Client, match map[string]string, savedEtag string
 			BrowseURL:   browseURL,
 			Etag:        commit,
 			VCS:         "git",
+			StarCount:   starCount,
 		},
 	}
 
