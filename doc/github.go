@@ -71,14 +71,16 @@ func getGithubDoc(client *http.Client, match map[string]string, savedEtag string
 		return nil, ErrNotModified
 	}
 	
-	var stars []map[string]interface{}
+	var repoInfo struct {
+		Watchers int `json:"watchers"`
+	}
 	var starCount = -1
 
-	err = httpGetJSON(client, expand("https://api.github.com/repos/{owner}/{repo}/stargazers", match), &stars)
+	err = httpGetJSON(client, expand("https://api.github.com/repos/{owner}/{repo}?{cred}", match), &repoInfo)
 	if err == nil {
-		starCount = len(stars)
+		starCount = repoInfo.Watchers
 	}
-	log.Printf("[github-star]: %v, %v", err, stars)
+	log.Printf("[github-star]: %v, [%d]", err, repoInfo.Watchers)
 
 	var tree struct {
 		Tree []struct {
