@@ -456,8 +456,10 @@ type Package struct {
 	TestImports  []string
 	XTestImports []string
 	
-	// The number of stargazers
+	// The number of stargazers/watchers
 	StarCount int
+	// Filename and content of readme.* files
+	ReadmeFiles map[string][]byte
 }
 
 var goEnvs = []struct{ GOOS, GOARCH string }{
@@ -477,6 +479,15 @@ func (b *builder) build(srcs []*source) (*Package, error) {
 			b.srcs[src.name] = src
 		} else {
 			addReferences(references, src.data)
+			
+			fn := strings.ToLower(src.name)
+			if strings.HasSuffix(fn, "readme.md") {
+				if b.pdoc.ReadmeFiles == nil {
+					b.pdoc.ReadmeFiles = make(map[string][]byte)
+				}
+				
+				b.pdoc.ReadmeFiles[src.name] = src.data
+			}
 		}
 	}
 

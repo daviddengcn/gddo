@@ -23,6 +23,28 @@ import (
 var bitbucketPattern = regexp.MustCompile(`^bitbucket\.org/(?P<owner>[a-z0-9A-Z_.\-]+)/(?P<repo>[a-z0-9A-Z_.\-]+)(?P<dir>/[a-z0-9A-Z_.\-/]*)?$`)
 var bitbucketEtagRe = regexp.MustCompile(`^(hg|git)-`)
 
+func GetBitbucketPerson(client *http.Client, match map[string]string)(*Person, error) {
+	var userInfo struct {
+		Repositories []*struct {
+			Name     string
+			Language string
+		}
+	}
+	if err := httpGetJSON(client, expand("https://api.bitbucket.org/1.0/users/{owner}", match), &userInfo); err != nil {
+		return nil, err
+	}
+	
+	p := &Person{}
+	for _, repo := range userInfo.Repositories {
+		if repo.Language != "go" {
+			continue
+		}
+		p.Projects = append(p.Projects, "bitbucket.org/" + match["owner"] + repo.Name)
+	}
+	
+	return p, nil
+}
+
 func getBitbucketDoc(client *http.Client, match map[string]string, savedEtag string) (*Package, error) {
 
 	if m := bitbucketEtagRe.FindStringSubmatch(savedEtag); m != nil {
