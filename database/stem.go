@@ -129,3 +129,7 @@ func stem(s string) string {
 	}
 	return string(stem)
 }
+
+func Stem(s string) string {
+	return stem(s)
+}

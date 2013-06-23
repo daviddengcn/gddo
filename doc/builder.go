@@ -16,6 +16,7 @@ package doc
 
 import (
 	"bytes"
+	"errors"
 	"go/ast"
 	"go/build"
 	"go/doc"
@@ -333,6 +334,11 @@ func simpleImporter(imports map[string]*ast.Object, path string) (*ast.Object, e
 			}
 		}
 	}
+	
+	if pkg == nil {
+		return nil, errors.New("Failed to match")
+	}
+	
 	return pkg, nil
 }
 
@@ -481,7 +487,7 @@ func (b *builder) build(srcs []*source) (*Package, error) {
 			addReferences(references, src.data)
 			
 			fn := strings.ToLower(src.name)
-			if strings.HasSuffix(fn, "readme.md") {
+			if fn == "readme" || strings.HasPrefix(fn, "readme.") {
 				if b.pdoc.ReadmeFiles == nil {
 					b.pdoc.ReadmeFiles = make(map[string][]byte)
 				}
