@@ -48,11 +48,13 @@ func GetGithubPerson(client *http.Client, match map[string]string)(*Person, erro
 		return nil, err
 	}
 	
+log.Printf("[GetGithubPerson] %s %v", match["owner"], projects)	
+	
 	p := &Person{}
 	for _, project := range projects {
-		if project.Fork {
-			continue
-		}
+		//if project.Fork {
+		//	continue
+		//}
 		
 		if project.Language != "Go" {
 			continue
