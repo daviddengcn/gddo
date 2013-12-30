@@ -334,11 +334,11 @@ func simpleImporter(imports map[string]*ast.Object, path string) (*ast.Object, e
 			}
 		}
 	}
-	
+
 	if pkg == nil {
 		return nil, errors.New("Failed to match")
 	}
-	
+
 	return pkg, nil
 }
 
@@ -461,7 +461,7 @@ type Package struct {
 	Imports      []string
 	TestImports  []string
 	XTestImports []string
-	
+
 	// The number of stargazers/watchers
 	StarCount int
 	// Filename and content of readme.* files
@@ -485,13 +485,13 @@ func (b *builder) build(srcs []*source) (*Package, error) {
 			b.srcs[src.name] = src
 		} else {
 			addReferences(references, src.data)
-			
+
 			fn := strings.ToLower(src.name)
 			if fn == "readme" || strings.HasPrefix(fn, "readme.") {
 				if b.pdoc.ReadmeFiles == nil {
 					b.pdoc.ReadmeFiles = make(map[string][]byte)
 				}
-				
+
 				b.pdoc.ReadmeFiles[src.name] = src.data
 			}
 		}

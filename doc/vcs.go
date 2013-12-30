@@ -16,6 +16,7 @@ package doc
 
 import (
 	"bytes"
+	"errors"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -24,6 +25,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"time"
 )
 
 // TODO: specify with command line flag
@@ -48,7 +50,8 @@ var urlTemplates = []struct {
 
 // lookupURLTemplate finds an expand() template, match map and line number
 // format for well known repositories.
-func lookupURLTemplate(repo, dir, tag string) (string, map[string]string, string) {
+func lookupURLTemplate(repo, dir, tag string) (string, map[string]string,
+	string) {
 	if strings.HasPrefix(dir, "/") {
 		dir = dir[1:] + "/"
 	}
@@ -81,17 +84,73 @@ var vcsCmds = map[string]*vcsCmd{
 	},
 }
 
-var lsremoteRe = regexp.MustCompile(`(?m)^([0-9a-f]{40})\s+refs/(?:tags|heads)/(.+)$`)
+var lsremoteRe = regexp.MustCompile(
+	`(?m)^([0-9a-f]{40})\s+refs/(?:tags|heads)/(.+)$`)
 
-func downloadGit(schemes []string, repo, savedEtag string) (string, string, error) {
+func timeoutCmdOutput(d time.Duration, name string, args ...string) []byte {
+	cmd := exec.Command(name, args...)
+	log.Println(strings.Join(cmd.Args, " "))
+	end := make(chan []byte, 1)
+	go func() {
+		p, err := cmd.Output()
+		if err == nil {
+			end <- p
+		} else {
+			end <- nil
+		}
+	}()
+	select {
+	case p := <-end:
+		return p
+	case <-time.After(d):
+		log.Printf("Command timeout: %v", strings.Join(cmd.Args, " "))
+	}
+	return nil
+}
+
+func timeoutCmdRun(d time.Duration, name string, args ...string) error {
+	cmd := exec.Command(name, args...)
+	log.Println(strings.Join(cmd.Args, " "))
+	end := make(chan error, 1)
+	go func() {
+		end <- cmd.Run()
+	}()
+	select {
+	case err := <-end:
+		return err
+	case <-time.After(d):
+		log.Printf("Command timeout: %v", strings.Join(cmd.Args, " "))
+	}
+	return errors.New("Timeout")
+}
+
+func timeoutCmdRunAt(d time.Duration, dir string, name string,
+	args ...string) error {
+	cmd := exec.Command(name, args...)
+	cmd.Dir = dir
+	log.Println(strings.Join(cmd.Args, " "))
+	end := make(chan error, 1)
+	go func() {
+		end <- cmd.Run()
+	}()
+	select {
+	case err := <-end:
+		return err
+	case <-time.After(d):
+		log.Printf("Command timeout: %v", strings.Join(cmd.Args, " "))
+	}
+	return errors.New("Timeout")
+}
+
+func downloadGit(schemes []string, repo,
+	savedEtag string) (string, string, error) {
 	var p []byte
 	var scheme string
 	for i := range schemes {
-		cmd := exec.Command("git", "ls-remote", "--heads", "--tags", schemes[i]+"://"+repo+".git")
-		log.Println(strings.Join(cmd.Args, " "))
-		var err error
-		p, err = cmd.Output()
-		if err == nil {
+		p := timeoutCmdOutput(1*time.Minute, "git", "ls-remote", "--heads",
+			"--tags", schemes[i]+"://"+repo+".git")
+
+		if p != nil {
 			scheme = schemes[i]
 			break
 		}
@@ -124,34 +183,31 @@ func downloadGit(schemes []string, repo, savedEtag string) (string, string, erro
 		if err := os.MkdirAll(dir, 0777); err != nil {
 			return "", "", err
 		}
-		cmd := exec.Command("git", "clone", scheme+"://"+repo, dir)
-		log.Println(strings.Join(cmd.Args, " "))
-		if err := cmd.Run(); err != nil {
+		if err := timeoutCmdRun(2*time.Minute,
+			"git", "clone", scheme+"://"+repo, dir); err != nil {
 			return "", "", err
 		}
 	case string(bytes.TrimRight(p, "\n")) == commit:
 		return tag, etag, nil
 	default:
-		cmd := exec.Command("git", "fetch")
-		log.Println(strings.Join(cmd.Args, " "))
-		cmd.Dir = dir
-		if err := cmd.Run(); err != nil {
+		if err := timeoutCmdRunAt(2*time.Minute, dir, "git", "fetch"); err != nil {
 			return "", "", err
 		}
 	}
 
-	cmd := exec.Command("git", "checkout", "--detach", "--force", commit)
-	cmd.Dir = dir
-	if err := cmd.Run(); err != nil {
+	if err := timeoutCmdRunAt(2*time.Minute, dir, "git", "checkout",
+		"--detach", "--force", commit); err != nil {
 		return "", "", err
 	}
 
 	return tag, etag, nil
 }
 
-var vcsPattern = regexp.MustCompile(`^(?P<repo>(?:[a-z0-9.\-]+\.)+[a-z0-9.\-]+(?::[0-9]+)?/[A-Za-z0-9_.\-/]*?)\.(?P<vcs>bzr|git|hg|svn)(?P<dir>/[A-Za-z0-9_.\-/]*)?$`)
+var vcsPattern = regexp.MustCompile(
+	`^(?P<repo>(?:[a-z0-9.\-]+\.)+[a-z0-9.\-]+(?::[0-9]+)?/[A-Za-z0-9_.\-/]*?)\.(?P<vcs>bzr|git|hg|svn)(?P<dir>/[A-Za-z0-9_.\-/]*)?$`)
 
-func getVCSDoc(client *http.Client, match map[string]string, etagSaved string) (*Package, error) {
+func getVCSDoc(client *http.Client, match map[string]string,
+	etagSaved string) (*Package, error) {
 	cmd := vcsCmds[match["vcs"]]
 	if cmd == nil {
 		return nil, NotFoundError{expand("VCS not supported: {vcs}", match)}
@@ -184,7 +240,8 @@ func getVCSDoc(client *http.Client, match map[string]string, etagSaved string) (
 
 	// Find source location.
 
-	urlTemplate, urlMatch, lineFmt := lookupURLTemplate(match["repo"], match["dir"], tag)
+	urlTemplate, urlMatch, lineFmt := lookupURLTemplate(match["repo"],
+		match["dir"], tag)
 
 	// Slurp source files.
 

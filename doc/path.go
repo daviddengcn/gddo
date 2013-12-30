@@ -487,7 +487,7 @@ var validTLD = map[string]bool{
 var validHost = regexp.MustCompile(`^[-a-z0-9]+(?:\.[-a-z0-9]+)+$`)
 var validPathElement = regexp.MustCompile(`^[-A-Za-z0-9~+][-A-Za-z0-9_.]*$`)
 
-var blackHosts = map[string]bool {
+var blackHosts = map[string]bool{
 	"gist.github.com": true,
 }
 
@@ -508,7 +508,7 @@ func IsValidRemotePath(importPath string) bool {
 	if !validHost.MatchString(parts[0]) {
 		return false
 	}
-	
+
 	if blackHosts[parts[0]] {
 		return false
 	}

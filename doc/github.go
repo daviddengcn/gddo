@@ -20,7 +20,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
-	
+
 	"log"
 )
 
@@ -35,33 +35,34 @@ func SetGithubCredentials(id, secret string) {
 type Person struct {
 	Projects []string
 }
-func GetGithubPerson(client *http.Client, match map[string]string)(*Person, error) {
+
+func GetGithubPerson(client *http.Client, match map[string]string) (*Person, error) {
 	match["cred"] = githubCred
 	var projects []*struct {
 		Full_Name string
 		Fork      bool
 		Language  string
 	}
-	
+
 	err := httpGetJSON(client, expand("https://api.github.com/users/{owner}/repos?{cred}", match), &projects)
 	if err != nil {
 		return nil, err
 	}
-	
-log.Printf("[GetGithubPerson] %s %v", match["owner"], projects)	
-	
+
+	log.Printf("[GetGithubPerson] %s %v", match["owner"], projects)
+
 	p := &Person{}
 	for _, project := range projects {
 		//if project.Fork {
 		//	continue
 		//}
-		
+
 		if project.Language != "Go" {
 			continue
 		}
-		p.Projects = append(p.Projects, "github.com/" + project.Full_Name)
+		p.Projects = append(p.Projects, "github.com/"+project.Full_Name)
 	}
-	
+
 	return p, nil
 }
 
@@ -103,7 +104,7 @@ func getGithubDoc(client *http.Client, match map[string]string, savedEtag string
 	if commit == savedEtag {
 		return nil, ErrNotModified
 	}
-	
+
 	var repoInfo struct {
 		Watchers int `json:"watchers"`
 	}

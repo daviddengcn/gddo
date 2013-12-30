@@ -21,7 +21,7 @@ import (
 	"regexp"
 	//"strconv"
 	"strings"
-	
+
 	// "log"
 )
 
@@ -31,7 +31,7 @@ var (
 	googleEtagRe     = regexp.MustCompile(`^(hg|git|svn)-`)
 	googleFileRe     = regexp.MustCompile(`<li><a href="([^"/]+)"`)
 	googlePattern    = regexp.MustCompile(`^code\.google\.com/p/(?P<repo>[a-z0-9\-]+)(:?\.(?P<subrepo>[a-z0-9\-]+))?(?P<dir>/[a-z0-9A-Z_.\-/]+)?$`)
-	
+
 	// googleStarRe     = regexp.MustCompile(`<span\s+id="star_count">\s*([0-9])+\s*</span>`)
 )
 
@@ -44,20 +44,20 @@ func getGoogleDoc(client *http.Client, match map[string]string, savedEtag string
 	}
 
 	starCount := -1
-/*
-	p, err := httpGetBytes(client, expand("https://code.google.com/p/{repo}/", match), nil)
-	if err == nil {
-		log.Printf("[getGoogleDoc] httpGetBytes %s: %s", expand("https://code.google.com/p/{repo}/", match), string(p))
-		m := googleStarRe.FindSubmatch(p)
-		if m != nil {
-			cnt, err := strconv.Atoi(strings.TrimSpace(string(m[1])))
-			if err == nil {
-				starCount = cnt
+	/*
+		p, err := httpGetBytes(client, expand("https://code.google.com/p/{repo}/", match), nil)
+		if err == nil {
+			log.Printf("[getGoogleDoc] httpGetBytes %s: %s", expand("https://code.google.com/p/{repo}/", match), string(p))
+			m := googleStarRe.FindSubmatch(p)
+			if m != nil {
+				cnt, err := strconv.Atoi(strings.TrimSpace(string(m[1])))
+				if err == nil {
+					starCount = cnt
+				}
 			}
 		}
-	}
-*/	
-	
+	*/
+
 	// Scrape the repo browser to find the project revision and individual Go files.
 	p, err := httpGetBytes(client, expand("http://{subrepo}{dot}{repo}.googlecode.com/{vcs}{dir}/", match), nil)
 	if err != nil {
