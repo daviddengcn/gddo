@@ -57,8 +57,8 @@ var (
 type service struct {
 	pattern         *regexp.Regexp
 	prefix          string
-	get             func(*http.Client, map[string]string, string) (*Package, error)
-	getPresentation func(*http.Client, map[string]string) (*Presentation, error)
+	get             func(HttpClient, map[string]string, string) (*Package, error)
+	getPresentation func(HttpClient, map[string]string) (*Presentation, error)
 }
 
 // services is the list of source code control services handled by gopkgdoc.
@@ -79,7 +79,15 @@ func attrValue(attrs []xml.Attr, name string) string {
 	return ""
 }
 
-func fetchMeta(client *http.Client, importPath string) (map[string]string, error) {
+func httpClientGet(client HttpClient, url string) (*http.Response, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
+}
+
+func fetchMeta(client HttpClient, importPath string) (map[string]string, error) {
 	uri := importPath
 	if !strings.Contains(uri, "/") {
 		// Add slash for root of domain.
@@ -88,13 +96,13 @@ func fetchMeta(client *http.Client, importPath string) (map[string]string, error
 	uri = uri + "?go-get=1"
 
 	scheme := "https"
-	resp, err := client.Get(scheme + "://" + uri)
+	resp, err := httpClientGet(client, scheme + "://" + uri)
 	if err != nil || resp.StatusCode != 200 {
 		if err == nil {
 			resp.Body.Close()
 		}
 		scheme = "http"
-		resp, err = client.Get(scheme + "://" + uri)
+		resp, err = httpClientGet(client, scheme + "://" + uri)
 		if err != nil {
 			return nil, &RemoteError{strings.SplitN(importPath, "/", 2)[0], err}
 		}
@@ -171,7 +179,7 @@ metaScan:
 }
 
 // getDynamic gets a document from a service that is not statically known.
-func getDynamic(client *http.Client, importPath, etag string) (*Package, error) {
+func getDynamic(client HttpClient, importPath, etag string) (*Package, error) {
 	match, err := fetchMeta(client, importPath)
 	if err != nil {
 		return nil, err
@@ -206,7 +214,7 @@ func getDynamic(client *http.Client, importPath, etag string) (*Package, error) 
 
 // getStatic gets a document from a statically known service. getStatic
 // returns errNoMatch if the import path is not recognized.
-func getStatic(client *http.Client, importPath, originalImportPath, etag string) (*Package, error) {
+func getStatic(client HttpClient, importPath, originalImportPath, etag string) (*Package, error) {
 	for _, s := range services {
 		if s.get == nil || !strings.HasPrefix(importPath, s.prefix) {
 			continue
@@ -229,7 +237,7 @@ func getStatic(client *http.Client, importPath, originalImportPath, etag string)
 	return nil, errNoMatch
 }
 
-func Get(client *http.Client, importPath string, etag string) (pdoc *Package, err error) {
+func Get(client HttpClient, importPath string, etag string) (pdoc *Package, err error) {
 
 	const versionPrefix = PackageVersion + "-"
 
@@ -266,7 +274,7 @@ func Get(client *http.Client, importPath string, etag string) (pdoc *Package, er
 }
 
 // GetPresentation gets a presentation from the the given path.
-func GetPresentation(client *http.Client, importPath string) (*Presentation, error) {
+func GetPresentation(client HttpClient, importPath string) (*Presentation, error) {
 	ext := path.Ext(importPath)
 	if ext != ".slide" && ext != ".article" {
 		return nil, NotFoundError{"unknown file extension."}

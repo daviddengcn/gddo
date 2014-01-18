@@ -19,7 +19,6 @@ import (
 	"errors"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 	"os/exec"
 	"path"
@@ -206,7 +205,7 @@ func downloadGit(schemes []string, repo,
 var vcsPattern = regexp.MustCompile(
 	`^(?P<repo>(?:[a-z0-9.\-]+\.)+[a-z0-9.\-]+(?::[0-9]+)?/[A-Za-z0-9_.\-/]*?)\.(?P<vcs>bzr|git|hg|svn)(?P<dir>/[A-Za-z0-9_.\-/]*)?$`)
 
-func getVCSDoc(client *http.Client, match map[string]string,
+func getVCSDoc(client HttpClient, match map[string]string,
 	etagSaved string) (*Package, error) {
 	cmd := vcsCmds[match["vcs"]]
 	if cmd == nil {

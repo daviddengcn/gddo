@@ -15,7 +15,6 @@
 package doc
 
 import (
-	"net/http"
 	"path"
 	"regexp"
 )
@@ -23,7 +22,7 @@ import (
 var bitbucketPattern = regexp.MustCompile(`^bitbucket\.org/(?P<owner>[a-z0-9A-Z_.\-]+)/(?P<repo>[a-z0-9A-Z_.\-]+)(?P<dir>/[a-z0-9A-Z_.\-/]*)?$`)
 var bitbucketEtagRe = regexp.MustCompile(`^(hg|git)-`)
 
-func GetBitbucketPerson(client *http.Client, match map[string]string) (*Person, error) {
+func GetBitbucketPerson(client HttpClient, match map[string]string) (*Person, error) {
 	var userInfo struct {
 		Repositories []*struct {
 			Name     string
@@ -45,7 +44,7 @@ func GetBitbucketPerson(client *http.Client, match map[string]string) (*Person, 
 	return p, nil
 }
 
-func getBitbucketDoc(client *http.Client, match map[string]string, savedEtag string) (*Package, error) {
+func getBitbucketDoc(client HttpClient, match map[string]string, savedEtag string) (*Package, error) {
 
 	if m := bitbucketEtagRe.FindStringSubmatch(savedEtag); m != nil {
 		match["vcs"] = m[1]

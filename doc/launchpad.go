@@ -21,7 +21,6 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"io"
-	"net/http"
 	"path"
 	"regexp"
 	"sort"
@@ -43,7 +42,7 @@ func (p byHash) Swap(i, j int) {
 
 var launchpadPattern = regexp.MustCompile(`^launchpad\.net/(?P<repo>(?P<project>[a-z0-9A-Z_.\-]+)(?P<series>/[a-z0-9A-Z_.\-]+)?|~[a-z0-9A-Z_.\-]+/(\+junk|[a-z0-9A-Z_.\-]+)/[a-z0-9A-Z_.\-]+)(?P<dir>/[a-z0-9A-Z_.\-/]+)*$`)
 
-func getLaunchpadDoc(client *http.Client, match map[string]string, savedEtag string) (*Package, error) {
+func getLaunchpadDoc(client HttpClient, match map[string]string, savedEtag string) (*Package, error) {
 
 	if match["project"] != "" && match["series"] != "" {
 		rc, err := httpGet(client, expand("https://code.launchpad.net/{project}{series}/.bzr/branch-format", match), nil)

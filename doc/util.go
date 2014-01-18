@@ -81,7 +81,7 @@ func SetUserAgent(ua string) {
 }
 
 // fetchFiles fetches the source files specified by the rawURL field in parallel.
-func fetchFiles(client *http.Client, files []*source, header http.Header) error {
+func fetchFiles(client HttpClient, files []*source, header http.Header) error {
 	ch := make(chan error, len(files))
 	for i := range files {
 		go func(i int) {
@@ -120,9 +120,13 @@ func fetchFiles(client *http.Client, files []*source, header http.Header) error 
 	return nil
 }
 
+type HttpClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
 // httpGet gets the specified resource. ErrNotFound is returned if the
 // server responds with status 404.
-func httpGet(client *http.Client, url string, header http.Header) (io.ReadCloser, error) {
+func httpGet(client HttpClient, url string, header http.Header) (io.ReadCloser, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -147,7 +151,7 @@ func httpGet(client *http.Client, url string, header http.Header) (io.ReadCloser
 	return nil, err
 }
 
-func httpGetJSON(client *http.Client, url string, v interface{}) error {
+func httpGetJSON(client HttpClient, url string, v interface{}) error {
 	rc, err := httpGet(client, url, nil)
 	if err != nil {
 		return err
@@ -162,7 +166,7 @@ func httpGetJSON(client *http.Client, url string, v interface{}) error {
 
 // httpGet gets the specified resource. ErrNotFound is returned if the server
 // responds with status 404.
-func httpGetBytes(client *http.Client, url string, header http.Header) ([]byte, error) {
+func httpGetBytes(client HttpClient, url string, header http.Header) ([]byte, error) {
 	rc, err := httpGet(client, url, header)
 	if err != nil {
 		return nil, err
@@ -175,7 +179,7 @@ func httpGetBytes(client *http.Client, url string, header http.Header) ([]byte, 
 // httpGetBytesNoneMatch conditionally gets the specified resource. If a 304 status
 // is returned, then the function returns ErrNotModified. If a 404
 // status is returned, then the function returns ErrNotFound.
-func httpGetBytesNoneMatch(client *http.Client, url string, etag string) ([]byte, string, error) {
+func httpGetBytesNoneMatch(client HttpClient, url string, etag string) ([]byte, string, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, "", err
@@ -211,7 +215,7 @@ func httpGetBytesNoneMatch(client *http.Client, url string, etag string) ([]byte
 // httpGet gets the specified resource. ErrNotFound is returned if the
 // server responds with status 404. ErrNotModified is returned if the
 // hash of the resource equals savedEtag.
-func httpGetBytesCompare(client *http.Client, url string, savedEtag string) ([]byte, string, error) {
+func httpGetBytesCompare(client HttpClient, url string, savedEtag string) ([]byte, string, error) {
 	p, err := httpGetBytes(client, url, nil)
 	if err != nil {
 		return nil, "", err

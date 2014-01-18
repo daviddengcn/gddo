@@ -16,7 +16,6 @@ package doc
 
 import (
 	"errors"
-	"net/http"
 	"net/url"
 	"regexp"
 	//"strconv"
@@ -35,7 +34,7 @@ var (
 	// googleStarRe     = regexp.MustCompile(`<span\s+id="star_count">\s*([0-9])+\s*</span>`)
 )
 
-func getGoogleDoc(client *http.Client, match map[string]string, savedEtag string) (*Package, error) {
+func getGoogleDoc(client HttpClient, match map[string]string, savedEtag string) (*Package, error) {
 	setupGoogleMatch(match)
 	if m := googleEtagRe.FindStringSubmatch(savedEtag); m != nil {
 		match["vcs"] = m[1]
@@ -124,7 +123,7 @@ func setupGoogleMatch(match map[string]string) {
 	}
 }
 
-func getGoogleVCS(client *http.Client, match map[string]string) error {
+func getGoogleVCS(client HttpClient, match map[string]string) error {
 	// Scrape the HTML project page to find the VCS.
 	p, err := httpGetBytes(client, expand("http://code.google.com/p/{repo}/source/checkout", match), nil)
 	if err != nil {
@@ -138,7 +137,7 @@ func getGoogleVCS(client *http.Client, match map[string]string) error {
 	return nil
 }
 
-func getStandardDoc(client *http.Client, importPath string, savedEtag string) (*Package, error) {
+func getStandardDoc(client HttpClient, importPath string, savedEtag string) (*Package, error) {
 
 	p, err := httpGetBytes(client, "http://go.googlecode.com/hg-history/release/src/pkg/"+importPath+"/", nil)
 	if err != nil {
@@ -187,7 +186,7 @@ func getStandardDoc(client *http.Client, importPath string, savedEtag string) (*
 	return b.build(files)
 }
 
-func getGooglePresentation(client *http.Client, match map[string]string) (*Presentation, error) {
+func getGooglePresentation(client HttpClient, match map[string]string) (*Presentation, error) {
 	setupGoogleMatch(match)
 	if err := getGoogleVCS(client, match); err != nil {
 		return nil, err

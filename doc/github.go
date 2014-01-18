@@ -36,7 +36,7 @@ type Person struct {
 	Projects []string
 }
 
-func GetGithubPerson(client *http.Client, match map[string]string) (*Person, error) {
+func GetGithubPerson(client HttpClient, match map[string]string) (*Person, error) {
 	match["cred"] = githubCred
 	var projects []*struct {
 		Full_Name string
@@ -44,7 +44,9 @@ func GetGithubPerson(client *http.Client, match map[string]string) (*Person, err
 		Language  string
 	}
 
-	err := httpGetJSON(client, expand("https://api.github.com/users/{owner}/repos?{cred}", match), &projects)
+	err := httpGetJSON(client,
+		expand("https://api.github.com/users/{owner}/repos?{cred}", match),
+		&projects)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +68,7 @@ func GetGithubPerson(client *http.Client, match map[string]string) (*Person, err
 	return p, nil
 }
 
-func getGithubDoc(client *http.Client, match map[string]string, savedEtag string) (*Package, error) {
+func getGithubDoc(client HttpClient, match map[string]string, savedEtag string) (*Package, error) {
 
 	match["cred"] = githubCred
 
@@ -80,7 +82,9 @@ func getGithubDoc(client *http.Client, match map[string]string, savedEtag string
 		Url string
 	}
 
-	err := httpGetJSON(client, expand("https://api.github.com/repos/{owner}/{repo}/git/refs?{cred}", match), &refs)
+	err := httpGetJSON(client,
+		expand("https://api.github.com/repos/{owner}/{repo}/git/refs?{cred}", match),
+		&refs)
 	if err != nil {
 		return nil, err
 	}
@@ -95,12 +99,13 @@ func getGithubDoc(client *http.Client, match map[string]string, savedEtag string
 		}
 	}
 
+	// choose the best tags
 	var commit string
 	match["tag"], commit, err = bestTag(tags, "master")
 	if err != nil {
 		return nil, err
 	}
-
+	// If commit sha doesn't change, return not modified
 	if commit == savedEtag {
 		return nil, ErrNotModified
 	}
@@ -186,7 +191,7 @@ func getGithubDoc(client *http.Client, match map[string]string, savedEtag string
 	return b.build(files)
 }
 
-func getGithubPresentation(client *http.Client, match map[string]string) (*Presentation, error) {
+func getGithubPresentation(client HttpClient, match map[string]string) (*Presentation, error) {
 
 	match["cred"] = githubCred
 
